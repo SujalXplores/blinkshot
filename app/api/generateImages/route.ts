@@ -4,11 +4,11 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { headers } from "next/headers";
 
-let ratelimit: Ratelimit | undefined;
+let rateLimit: Ratelimit | undefined;
 
 // Add rate limiting if Upstash API keys are set, otherwise skip
 if (process.env.UPSTASH_REDIS_REST_URL) {
-  ratelimit = new Ratelimit({
+  rateLimit = new Ratelimit({
     redis: Redis.fromEnv(),
     // Allow 100 requests per day (~5-10 prompts)
     limiter: Ratelimit.fixedWindow(100, "1440 m"),
@@ -18,8 +18,8 @@ if (process.env.UPSTASH_REDIS_REST_URL) {
 }
 
 export async function POST(req: Request) {
-  let json = await req.json();
-  let { prompt, userAPIKey, iterativeMode } = z
+  const json = await req.json();
+  const { prompt, userAPIKey, iterativeMode } = z
     .object({
       prompt: z.string(),
       iterativeMode: z.boolean(),
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     .parse(json);
 
   // Add observability if a Helicone key is specified, otherwise skip
-  let options: ConstructorParameters<typeof Together>[0] = {};
+  const options: ConstructorParameters<typeof Together>[0] = {};
   if (process.env.HELICONE_API_KEY) {
     options.baseURL = "https://together.helicone.ai/v1";
     options.defaultHeaders = {
@@ -43,10 +43,10 @@ export async function POST(req: Request) {
     client.apiKey = userAPIKey;
   }
 
-  if (ratelimit && !userAPIKey) {
+  if (rateLimit && !userAPIKey) {
     const identifier = getIPAddress();
 
-    const { success } = await ratelimit.limit(identifier);
+    const { success } = await rateLimit.limit(identifier);
     if (!success) {
       return Response.json(
         "No requests left. Please add your own API key or try again in 24h.",
@@ -69,7 +69,6 @@ export async function POST(req: Request) {
       // @ts-expect-error - this is not typed in the API
       response_format: "base64",
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (e: any) {
     return Response.json(
       { error: e.toString() },

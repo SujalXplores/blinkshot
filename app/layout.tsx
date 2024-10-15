@@ -9,16 +9,17 @@ const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
 });
+
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
 });
 
-let title = "BlinkShot – Real-Time AI Image Generator";
-let description = "Generate images with AI in a milliseconds";
-let url = "https://www.blinkshot.io/";
-let ogimage = "https://www.blinkshot.io/og-image.png";
-let sitename = "blinkshot.io";
+const title = "BlinkShot - Real-Time AI Image Generator";
+const description = "Generate images with AI in a milliseconds";
+const url = "https://www.blinkshot.io/";
+const ogimage = "https://www.blinkshot.io/og-image.png";
+const siteName = "blinkshot.io";
 
 export const metadata: Metadata = {
   metadataBase: new URL(url),
@@ -31,8 +32,8 @@ export const metadata: Metadata = {
     images: [ogimage],
     title,
     description,
-    url: url,
-    siteName: sitename,
+    url,
+    siteName,
     locale: "en_US",
     type: "website",
   },

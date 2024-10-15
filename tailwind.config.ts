@@ -9,26 +9,33 @@ const config: Config = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    darkMode: "class",
-    colors: {
-      ...colors,
-      gray: {
-        "100": "#F3F3F3",
-        "200": "#C9C9C9",
-        "300": "#898989",
-        "350": "#525252",
-        "400": "#222222",
-        "500": "#151515",
-        "600": "#070707",
-      },
-    },
     extend: {
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-      },
       colors: {
+        // Use new color names directly
+        sky: colors.sky,
+        stone: colors.stone,
+        neutral: colors.neutral,
+        slate: colors.slate,
+
+        // Maintain old color names for backward compatibility
+        lightBlue: colors.sky,
+        warmGray: colors.stone,
+        trueGray: colors.neutral,
+        coolGray: colors.gray,
+        blueGray: colors.slate,
+
+        // Custom gray scale
+        gray: {
+          "100": "#F3F3F3",
+          "200": "#C9C9C9",
+          "300": "#898989",
+          "350": "#525252",
+          "400": "#222222",
+          "500": "#151515",
+          "600": "#070707",
+        },
+
+        // Theme colors (unchanged)
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
@@ -70,8 +77,14 @@ const config: Config = {
           "5": "hsl(var(--chart-5))",
         },
       },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],
 };
+
 export default config;

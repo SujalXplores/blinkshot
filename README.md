@@ -17,13 +17,13 @@
 
 ## Cloning & running
 
-1. Clone the repo: `git clone https://github.com/Nutlope/blinkshot`
+1. Clone the repo: `git clone https://github.com/SujalXplores/blinkshot`
 2. Create a `.env.local` file and add your [Together AI API key](https://www.dub.sh/together-ai): `TOGETHER_API_KEY=`
 3. Run `npm install` and `npm run dev` to install dependencies and run locally
 
 ## Future Tasks
 
-- [ ] Show a download button so people can get their images
+- [x] Show a download button so people can get their images
 - [ ] Add auth and rate limit by email instead of IP
 - [ ] Show people how many credits they have left
 - [ ] Build an image gallery of cool generations w/ their prompts

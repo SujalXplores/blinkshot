@@ -13,6 +13,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { Download } from "lucide-react";
+import { toast } from "react-hot-toast";
+import { sanitizeFilename } from "@/lib/utils";
 
 type ImageResponse = {
   b64_json: string;
@@ -27,13 +30,13 @@ export default function Home() {
   const [generations, setGenerations] = useState<
     { prompt: string; image: ImageResponse }[]
   >([]);
-  let [activeIndex, setActiveIndex] = useState<number>();
+  const [activeIndex, setActiveIndex] = useState<number>();
 
   const { data: image, isFetching } = useQuery({
     placeholderData: (previousData) => previousData,
     queryKey: [debouncedPrompt],
     queryFn: async () => {
-      let res = await fetch("/api/generateImages", {
+      const res = await fetch("/api/generateImages", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -51,7 +54,7 @@ export default function Home() {
     retry: false,
   });
 
-  let isDebouncing = prompt !== debouncedPrompt;
+  const isDebouncing = prompt !== debouncedPrompt;
 
   useEffect(() => {
     if (image && !generations.map((g) => g.image).includes(image)) {
@@ -60,8 +63,30 @@ export default function Home() {
     }
   }, [generations, image, prompt]);
 
-  let activeImage =
+  const activeImage =
     activeIndex !== undefined ? generations[activeIndex].image : undefined;
+
+  const handleDownload = (image: ImageResponse, prompt: string) => {
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .split(".")[0];
+    const truncatedPrompt = prompt
+      .slice(0, 30)
+      .trim()
+      .replace(/\s+/g, "-")
+      .toLowerCase();
+    const sanitizedPrompt = sanitizeFilename(truncatedPrompt);
+    const filename = `generated-${sanitizedPrompt}-${timestamp}.png`;
+
+    const link = document.createElement("a");
+    link.href = `data:image/png;base64,${image.b64_json}`;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Image downloaded successfully!");
+  };
 
   return (
     <div className="flex h-full flex-col px-5">
@@ -141,7 +166,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="mt-4 flex w-full max-w-4xl flex-col justify-center">
-            <div>
+            <div className="group relative">
               <Image
                 placeholder="blur"
                 blurDataURL={imagePlaceholder.blurDataURL}
@@ -149,27 +174,50 @@ export default function Home() {
                 height={768}
                 src={`data:image/png;base64,${activeImage.b64_json}`}
                 alt=""
-                className={`${isFetching ? "animate-pulse" : ""} max-w-full rounded-lg object-cover shadow-sm shadow-black`}
+                className={`${isFetching ? "animate-pulse" : ""} max-w-full rounded-lg object-cover shadow-sm shadow-black transition-all duration-300 group-hover:brightness-75`}
               />
+              <Button
+                onClick={() => handleDownload(activeImage, prompt)}
+                className="absolute bottom-4 right-4 translate-y-2 transform bg-white text-black opacity-0 transition-all duration-300 hover:bg-gray-200 group-hover:translate-y-0 group-hover:opacity-100"
+                size="sm"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download
+              </Button>
             </div>
 
             <div className="mt-4 flex gap-4 overflow-x-scroll pb-4">
               {generations.map((generatedImage, i) => (
-                <button
-                  key={i}
-                  className="w-32 shrink-0 opacity-50 hover:opacity-100"
-                  onClick={() => setActiveIndex(i)}
-                >
-                  <Image
-                    placeholder="blur"
-                    blurDataURL={imagePlaceholder.blurDataURL}
-                    width={1024}
-                    height={768}
-                    src={`data:image/png;base64,${generatedImage.image.b64_json}`}
-                    alt=""
-                    className="max-w-full rounded-lg object-cover shadow-sm shadow-black"
-                  />
-                </button>
+                <div key={i} className="group relative w-32 shrink-0">
+                  <button
+                    className="w-full transition-all duration-300 group-hover:brightness-75"
+                    onClick={() => setActiveIndex(i)}
+                  >
+                    <Image
+                      placeholder="blur"
+                      blurDataURL={imagePlaceholder.blurDataURL}
+                      width={1024}
+                      height={768}
+                      src={`data:image/png;base64,${generatedImage.image.b64_json}`}
+                      alt=""
+                      className="max-w-full rounded-lg object-cover shadow-sm shadow-black"
+                    />
+                  </button>
+                  <Button
+                    onClick={() =>
+                      handleDownload(
+                        generatedImage.image,
+                        generatedImage.prompt,
+                      )
+                    }
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80 p-2 text-gray-800 opacity-0 transition-all duration-300 hover:bg-white hover:text-black hover:shadow-md group-hover:opacity-100"
+                    size="icon"
+                    variant="ghost"
+                    title="Download image"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </div>
               ))}
             </div>
           </div>
@@ -198,18 +246,18 @@ export default function Home() {
 
         <div className="mt-8 flex items-center justify-center md:mt-0 md:justify-between md:gap-6">
           <p className="hidden whitespace-nowrap md:block">
-            100% free and{" "}
+            Forked from{" "}
             <a
               href="https://github.com/Nutlope/blinkshot"
               target="_blank"
               className="underline underline-offset-4 transition hover:text-blue-500"
             >
-              open source
+              Nutlope/blinkshot
             </a>
           </p>
 
           <div className="flex gap-6 md:gap-2">
-            <a href="https://github.com/Nutlope/blinkshot" target="_blank">
+            <a href="https://github.com/SujalXplores/blinkshot" target="_blank">
               <Button
                 variant="outline"
                 size="sm"
@@ -219,7 +267,7 @@ export default function Home() {
                 GitHub
               </Button>
             </a>
-            <a href="https://x.com/nutlope" target="_blank">
+            <a href="https://x.com/sujal_shah10" target="_blank">
               <Button
                 size="sm"
                 variant="outline"

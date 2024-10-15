@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function middleware(req: NextRequest) {
-  let country = req.geo?.country;
+  const country = req.geo?.country;
   // Temporarily blocking traffic from Russia since I have too many requests from there.
   if (country === "RU") {
     return new NextResponse("Access Denied", { status: 403 });
