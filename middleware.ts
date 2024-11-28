@@ -1,8 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
 
+import { geolocation } from "@vercel/functions";
+
 export async function middleware(req: NextRequest) {
-  const country = req.geo?.country;
+  const country = geolocation(req)?.country;
   // Temporarily blocking traffic from Russia since I have too many requests from there.
   if (country === "RU") {
     return new NextResponse("Access Denied", { status: 403 });

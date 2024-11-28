@@ -17,6 +17,16 @@ if (process.env.UPSTASH_REDIS_REST_URL) {
   });
 }
 
+interface ImageGenerationOptions {
+  prompt: string;
+  model: string;
+  width: number;
+  height: number;
+  seed?: number;
+  steps: number;
+  response_format: "base64";
+}
+
 export async function POST(req: Request) {
   const json = await req.json();
   const { prompt, userAPIKey, iterativeMode } = z
@@ -44,7 +54,7 @@ export async function POST(req: Request) {
   }
 
   if (rateLimit && !userAPIKey) {
-    const identifier = getIPAddress();
+    const identifier = await getIPAddress();
 
     const { success } = await rateLimit.limit(identifier);
     if (!success) {
@@ -66,9 +76,8 @@ export async function POST(req: Request) {
       height: 768,
       seed: iterativeMode ? 123 : undefined,
       steps: 3,
-      // @ts-expect-error - this is not typed in the API
       response_format: "base64",
-    });
+    } as ImageGenerationOptions);
   } catch (e: any) {
     return Response.json(
       { error: e.toString() },
@@ -83,13 +92,15 @@ export async function POST(req: Request) {
 
 export const runtime = "edge";
 
-function getIPAddress() {
+async function getIPAddress() {
   const FALLBACK_IP_ADDRESS = "0.0.0.0";
-  const forwardedFor = headers().get("x-forwarded-for");
+  const headersList = await headers();
+  const forwardedFor = headersList.get("x-forwarded-for");
 
   if (forwardedFor) {
     return forwardedFor.split(",")[0] ?? FALLBACK_IP_ADDRESS;
   }
 
-  return headers().get("x-real-ip") ?? FALLBACK_IP_ADDRESS;
+  const xRealIp = headersList.get("x-real-ip");
+  return xRealIp ?? FALLBACK_IP_ADDRESS;
 }
