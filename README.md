@@ -28,7 +28,7 @@
 - 🖼️ Featured gallery of generations
 - 📥 Easy image downloads
 - 🔑 Optional BYOK (Bring Your Own Key) support
-- 🌐 Rate limiting and analytics built-in
+- 🌏 Rate limiting and analytics built-in
 
 ## 🛠️ Tech Stack
 
