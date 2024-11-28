@@ -13,13 +13,20 @@ import { useQuery } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { Download } from "lucide-react";
+import { Download, Star } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { sanitizeFilename } from "@/lib/utils";
+import Link from "next/link";
 
 type ImageResponse = {
   b64_json: string;
   timings: { inference: number };
+};
+
+type Generation = {
+  prompt: string;
+  image: ImageResponse;
+  featured?: boolean;
 };
 
 export default function Home() {
@@ -27,9 +34,7 @@ export default function Home() {
   const [iterativeMode, setIterativeMode] = useState(false);
   const [userAPIKey, setUserAPIKey] = useState("");
   const debouncedPrompt = useDebounce(prompt, 300);
-  const [generations, setGenerations] = useState<
-    { prompt: string; image: ImageResponse }[]
-  >([]);
+  const [generations, setGenerations] = useState<Generation[]>([]);
   const [activeIndex, setActiveIndex] = useState<number>();
 
   const { data: image, isFetching } = useQuery({
@@ -88,6 +93,33 @@ export default function Home() {
     toast.success("Image downloaded successfully!");
   };
 
+  const handleFeature = async (index: number) => {
+    const generation = generations[index];
+    if (!generation) return;
+
+    try {
+      const res = await fetch("/api/gallery", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: generation.prompt,
+          imageBase64: generation.image.b64_json,
+        }),
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+
+      setGenerations((prev) =>
+        prev.map((gen, i) => (i === index ? { ...gen, featured: true } : gen)),
+      );
+      toast.success("Added to gallery!");
+    } catch (error) {
+      toast.error("Failed to add to gallery");
+    }
+  };
+
   return (
     <div className="flex h-full flex-col px-5">
       <header className="flex justify-center pt-20 md:justify-end md:pt-3">
@@ -115,6 +147,11 @@ export default function Home() {
             onChange={(e) => setUserAPIKey(e.target.value)}
           />
         </div>
+        <Link href="/gallery" className="absolute left-5 top-6">
+          <Button variant="outline" size="sm">
+            View Gallery
+          </Button>
+        </Link>
       </header>
 
       <div className="flex justify-center">
@@ -129,6 +166,8 @@ export default function Home() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 className="w-full resize-none border-gray-300 border-opacity-50 bg-gray-400 px-4 text-base placeholder-gray-300"
+                autoFocus
+                autoComplete="off"
               />
               <div
                 className={`${isFetching || isDebouncing ? "flex" : "hidden"} absolute bottom-3 right-3 items-center justify-center`}
@@ -176,17 +215,37 @@ export default function Home() {
                 alt=""
                 className={`${isFetching ? "animate-pulse" : ""} max-w-full rounded-lg object-cover shadow-sm shadow-black transition-all duration-300 group-hover:brightness-75`}
               />
-              <Button
-                onClick={() => handleDownload(activeImage, prompt)}
-                className="absolute bottom-4 right-4 translate-y-2 transform bg-white text-black opacity-0 transition-all duration-300 hover:bg-gray-200 group-hover:translate-y-0 group-hover:opacity-100"
-                size="sm"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download
-              </Button>
+              <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 translate-y-2 transform gap-3 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                <Button
+                  onClick={() => handleFeature(activeIndex!)}
+                  className="bg-white/90 text-black hover:bg-white"
+                  size="sm"
+                  disabled={generations[activeIndex!]?.featured}
+                >
+                  <Star
+                    className="mr-2 h-4 w-4"
+                    fill={
+                      generations[activeIndex!]?.featured
+                        ? "currentColor"
+                        : "none"
+                    }
+                  />
+                  {generations[activeIndex!]?.featured
+                    ? "Featured"
+                    : "Add to Gallery"}
+                </Button>
+                <Button
+                  onClick={() => handleDownload(activeImage, prompt)}
+                  className="bg-white/90 text-black hover:bg-white"
+                  size="sm"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download
+                </Button>
+              </div>
             </div>
 
-            <div className="mt-4 flex gap-4 overflow-x-scroll pb-4">
+            <div className="plane mt-4 flex gap-4 overflow-x-auto pb-4">
               {generations.map((generatedImage, i) => (
                 <div key={i} className="group relative w-32 shrink-0">
                   <button
@@ -203,20 +262,35 @@ export default function Home() {
                       className="max-w-full rounded-lg object-cover shadow-sm shadow-black"
                     />
                   </button>
-                  <Button
-                    onClick={() =>
-                      handleDownload(
-                        generatedImage.image,
-                        generatedImage.prompt,
-                      )
-                    }
-                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80 p-2 text-gray-800 opacity-0 transition-all duration-300 hover:bg-white hover:text-black hover:shadow-md group-hover:opacity-100"
-                    size="icon"
-                    variant="ghost"
-                    title="Download image"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
+                  <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 gap-2 opacity-0 transition-all duration-300 group-hover:opacity-100">
+                    <Button
+                      onClick={() => handleFeature(i)}
+                      className="rounded-full bg-white/90 p-2 text-gray-800 hover:bg-white hover:text-black hover:shadow-md disabled:opacity-50"
+                      size="icon"
+                      variant="ghost"
+                      title="Add to gallery"
+                      disabled={generatedImage.featured}
+                    >
+                      <Star
+                        className="h-4 w-4"
+                        fill={generatedImage.featured ? "currentColor" : "none"}
+                      />
+                    </Button>
+                    <Button
+                      onClick={() =>
+                        handleDownload(
+                          generatedImage.image,
+                          generatedImage.prompt,
+                        )
+                      }
+                      className="rounded-full bg-white/90 p-2 text-gray-800 hover:bg-white hover:text-black hover:shadow-md"
+                      size="icon"
+                      variant="ghost"
+                      title="Download image"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
