@@ -1,6 +1,4 @@
-import { Redis } from "@upstash/redis";
-
-const redis = Redis.fromEnv();
+import { redis, isRedisConfigured } from "@/lib/redis";
 
 export async function POST(req: Request) {
   try {
@@ -37,6 +35,12 @@ export async function POST(req: Request) {
 
 export async function GET() {
   try {
+    // Check if Redis is properly configured
+    if (!isRedisConfigured()) {
+      console.log("Redis not configured, returning empty gallery for development");
+      return Response.json([]);
+    }
+
     // Get the latest 50 gallery items, sorted by timestamp
     const items = await redis.zrange("gallery", 0, 49, {
       rev: true,
@@ -44,7 +48,7 @@ export async function GET() {
 
     // Safely parse each item
     const gallery = items
-      .map((item) => {
+      .map((item: any) => {
         try {
           // Handle both string and object cases
           if (typeof item === "string") {
@@ -64,7 +68,22 @@ export async function GET() {
     return Response.json(gallery);
   } catch (error) {
     console.error("Gallery fetch error:", error);
-    return Response.json({ error: "Failed to fetch gallery" }, { status: 500 });
+
+    // Provide more specific error messages
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const isUrlError = errorMessage.includes("URL") || errorMessage.includes("ERR_INVALID_URL");
+
+    if (isUrlError) {
+      return Response.json({
+        error: "Redis configuration error. Please check your UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables.",
+        details: "Visit https://console.upstash.com/redis to get your credentials"
+      }, { status: 500 });
+    }
+
+    return Response.json({
+      error: "Failed to fetch gallery",
+      details: errorMessage
+    }, { status: 500 });
   }
 }
 
